@@ -5,51 +5,64 @@ const morgan = require('morgan');
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
 
-// Route imports
-const authRoutes = require('./routes/auth');
-const bookRoutes = require('./routes/books');
-const cartRoutes = require('./routes/cart');
-const orderRoutes = require('./routes/orders');
+const authRoutes      = require('./routes/auth');
+const bookRoutes      = require('./routes/books');
+const cartRoutes      = require('./routes/cart');
+const orderRoutes     = require('./routes/orders');
 const recyclingRoutes = require('./routes/recycling');
-const userRoutes = require('./routes/users');
-const adminRoutes = require('./routes/admin');
+const userRoutes      = require('./routes/users');
+const adminRoutes     = require('./routes/admin');
 
 const app = express();
-
-// Connect to database
 connectDB();
 
-// Middleware
+// FIX 2: CORS - allow Vercel frontend to call this Render backend.
+// Old code only allowed CLIENT_URL || 'localhost:3000' which blocked Vercel.
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://bookstore-app-delta.vercel.app',
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (Postman, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    // Allow any *.vercel.app or *.onrender.com domain automatically
+    if (
+      allowedOrigins.includes(origin) ||
+      /\.vercel\.app$/.test(origin) ||
+      /\.onrender\.com$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
+if (process.env.NODE_ENV !== 'production') app.use(morgan('dev'));
 
-// Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Bookstore API is running', timestamp: new Date() });
 });
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/books', bookRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/orders', orderRoutes);
+app.use('/api/auth',      authRoutes);
+app.use('/api/books',     bookRoutes);
+app.use('/api/cart',      cartRoutes);
+app.use('/api/orders',    orderRoutes);
 app.use('/api/recycling', recyclingRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/users',     userRoutes);
+app.use('/api/admin',     adminRoutes);
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
 });
-
-// Error handler
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;

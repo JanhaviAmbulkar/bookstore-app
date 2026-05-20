@@ -1,4 +1,4 @@
-# 📚 PageTurn — Bookstore & Book Recycling System
+# 📚 Echoreads — Bookstore & Book Recycling System
 
 A full-stack MERN application featuring a complete bookstore e-commerce system with an integrated book recycling program, environmental impact tracking, and a full admin panel.
 

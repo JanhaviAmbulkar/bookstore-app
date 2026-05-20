@@ -71,14 +71,20 @@ function DashStatCard({ icon: Icon, label, value, color, bg }) {
 }
 
 export function AdminDashboard() {
-  const [data, setData]     = useState(null)
+  const [data, setData]       = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
 
   useEffect(() => {
-    adminAPI.getStats().then(({ data }) => setData(data)).finally(() => setLoading(false))
+    adminAPI.getStats()
+      .then(({ data }) => setData(data))
+      .catch((err) => setError(err?.response?.data?.message || 'Failed to load dashboard'))
+      .finally(() => setLoading(false))
   }, [])
 
   if (loading) return <div className="flex items-center justify-center h-96"><Loader size="lg" /></div>
+  if (error) return <div className="p-8 text-red-600 font-body">{error}</div>
+  if (!data) return null
 
   const { stats, recentOrders } = data
 
